@@ -39,6 +39,7 @@ dependencies = [
     "tensorboardX",
     "webdataset",
     "numpy",
+    "safetensors",
     "soundfile",
     "librosa",
 ]

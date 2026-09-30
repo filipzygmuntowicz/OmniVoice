@@ -229,7 +229,7 @@ def build_dataloaders(
         collate_fn=collate_fn,
         worker_init_fn=init_fn,
         pin_memory=True,
-        prefetch_factor=4,
+        prefetch_factor=4 if config.num_workers > 0 else None,
     )
 
     eval_loader = None

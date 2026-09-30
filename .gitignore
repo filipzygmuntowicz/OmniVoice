@@ -28,3 +28,7 @@ examples/exp*
 .claude/
 *.wav
 *.jsonl
+/trained
+/old_models_and_gens_storage
+/generated
+/clean_wav

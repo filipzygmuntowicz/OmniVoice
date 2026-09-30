@@ -335,6 +335,7 @@ class OmniVoice(PreTrainedModel):
         load_asr = kwargs.pop("load_asr", False)
         asr_model_name = kwargs.pop("asr_model_name", None)
         asr_device = kwargs.pop("asr_device", None)
+        audio_tokenizer_device = kwargs.pop("audio_tokenizer_device", None)
 
         # Suppress noisy INFO logs from transformers/huggingface_hub during loading
         _prev_disable = logging.root.manager.disable
@@ -361,6 +362,8 @@ class OmniVoice(PreTrainedModel):
                 tokenizer_device = (
                     "cpu" if str(model.device).startswith("mps") else model.device
                 )
+                if audio_tokenizer_device is not None:
+                    tokenizer_device = audio_tokenizer_device
                 model.audio_tokenizer = HiggsAudioV2TokenizerModel.from_pretrained(
                     audio_tokenizer_path, device_map=tokenizer_device
                 )
@@ -820,7 +823,9 @@ class OmniVoice(PreTrainedModel):
         ref_wav_tensor = torch.from_numpy(ref_wav).to(self.audio_tokenizer.device)
         ref_audio_tokens = self.audio_tokenizer.encode(
             ref_wav_tensor.unsqueeze(0),
-        ).audio_codes.squeeze(0)  # (C, T)
+        ).audio_codes.squeeze(
+            0
+        )  # (C, T)
 
         if preprocess_prompt:
             ref_text = add_punctuation(ref_text)
@@ -1045,9 +1050,9 @@ class OmniVoice(PreTrainedModel):
         if isinstance(text, str):
             text_list = [text]
         else:
-            assert isinstance(text, list), (
-                "text should be a string or a list of strings"
-            )
+            assert isinstance(
+                text, list
+            ), "text should be a string or a list of strings"
             text_list = text
         batch_size = len(text_list)
 
@@ -1129,9 +1134,11 @@ class OmniVoice(PreTrainedModel):
             est = self._estimate_target_tokens(
                 text_list[i],
                 ref_text_list[i],
-                ref_audio_tokens_list[i].size(-1)
-                if ref_audio_tokens_list[i] is not None
-                else None,
+                (
+                    ref_audio_tokens_list[i].size(-1)
+                    if ref_audio_tokens_list[i] is not None
+                    else None
+                ),
                 speed=item_speed,
             )
             num_target_tokens_list.append(est)
@@ -1231,7 +1238,9 @@ class OmniVoice(PreTrainedModel):
             self.text_tokenizer(style_text, return_tensors="pt")
             .input_ids.repeat(self.config.num_audio_codebook, 1)
             .unsqueeze(0)
-        ).to(self.device)  # [1, C, N1]
+        ).to(
+            self.device
+        )  # [1, C, N1]
 
         # Build text tokens
         full_text = _combine_text(ref_text=ref_text, text=text)
@@ -1240,7 +1249,9 @@ class OmniVoice(PreTrainedModel):
             _tokenize_with_nonverbal_tags(wrapped_text, self.text_tokenizer)
             .repeat(self.config.num_audio_codebook, 1)
             .unsqueeze(0)
-        ).to(self.device)  # [1, C, N2]
+        ).to(
+            self.device
+        )  # [1, C, N2]
 
         # Target: all MASK
         target_audio_tokens = torch.full(

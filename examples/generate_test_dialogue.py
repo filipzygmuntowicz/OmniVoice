@@ -51,6 +51,30 @@ def resolve_lora_adapter_path(path: str) -> Path:
     return adapter_path
 
 
+def resolve_case_insensitive_path(path: str | Path) -> Path:
+    file_path = Path(path).expanduser()
+    if file_path.exists():
+        return file_path
+
+    parent = file_path.parent
+    if not parent.is_dir():
+        raise FileNotFoundError(f"Directory does not exist: {parent}")
+
+    matches = [
+        child
+        for child in parent.iterdir()
+        if child.name.casefold() == file_path.name.casefold()
+    ]
+    if len(matches) == 1:
+        return matches[0]
+    if matches:
+        match_names = ", ".join(str(match) for match in matches)
+        raise FileExistsError(
+            f"Ambiguous case-insensitive path for {file_path}: {match_names}"
+        )
+    raise FileNotFoundError(f"File does not exist: {file_path}")
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Generate one OmniVoice test dialogue WAV.",
@@ -122,25 +146,25 @@ def main() -> None:
         filtered_models = [
             model for model, value in jsonObject.items() if (value == "Finetune_150")
         ]
-    for i in range(0, 10):
+    for i in range(0, 5):
         lora_type = "general"
         if i >= 1:
             lora_type = "finetune"
         for model_name, lines in modelToLinesWithRefs.items():
-            if "Player_PC_Hero" not in model_name:
-                continue
+            # if "Ass_Elite_Insidious_Carlos" not in model_name:
+            #    continue
             # if model_name not in filtered_models:
             #    continue
             if len(lines) == 0:
                 continue
-            # if model_name not in trained_directories:
-            #    continue
+            if model_name not in trained_directories:
+                continue
             steps = 45000
             lora_adapter = f"trained/GeneralModel/checkpoint-{steps}/model.safetensors"
             if lora_type == "finetune":
-                steps = i * 3000
+                steps = min(i * 100, 5000)
                 lora_adapter = (
-                    f"trained/Player_PC_Hero/checkpoint-{steps}/model.safetensors"
+                    f"trained/{model_name}/checkpoint-{steps}/model.safetensors"
                 )
             if not Path(lora_adapter).exists():
                 continue
@@ -178,6 +202,9 @@ def main() -> None:
                     clear_device_cache(device)
                     text = line["line"]
                     refLine = line["simillar"]
+                    ref_audio_path = resolve_case_insensitive_path(
+                        f"SPEECH_MERGED/{refLine["filename"]}"
+                    )
                     print(f"Generating: {line!r}")
                     audio = model.generate(
                         text=text,
@@ -185,7 +212,7 @@ def main() -> None:
                         instruct=instruct,
                         num_step=args.num_step,
                         speed=args.speed,
-                        ref_audio=f"clean_wav/{refLine["filename"]}",
+                        ref_audio=str(ref_audio_path),
                         ref_text=refLine["line"],
                     )
 

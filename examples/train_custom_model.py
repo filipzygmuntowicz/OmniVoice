@@ -101,11 +101,11 @@ def main(model_name: str) -> None:
     # LoRA is the practical default for a custom voice or small dataset. Set
     # USE_LORA = False only if you really intend to full-fine-tune the model.
     USE_LORA = True
-    TRAINING_STEPS = 45000
-    SAVE_STEPS = 3000
-    EVAL_STEPS = 500
-    BATCH_TOKENS = 2048
-    GRADIENT_ACCUMULATION_STEPS = 2
+    TRAINING_STEPS = 700
+    SAVE_STEPS = 100
+    EVAL_STEPS = 50
+    BATCH_TOKENS = 4096
+    GRADIENT_ACCUMULATION_STEPS = 1
     TRAIN_DATALOADER_WORKERS = 0
     MIXED_PRECISION = "bf16"
     ATTN_IMPLEMENTATION = "sdpa"
@@ -487,7 +487,7 @@ if __name__ == "__main__":
         MODEL_NAMES if MODEL_NAMES is not None else discover_model_names(project_root)
     )
     for model_index, model_name in enumerate(model_names, start=1):
-        if model_name != "Player_PC_Hero":
+        if model_name == "GeneralModel":
             continue
         print(f"\n=== Training {model_name} ({model_index}/{len(model_names)}) ===")
         main(model_name)

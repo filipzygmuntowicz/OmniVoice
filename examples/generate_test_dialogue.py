@@ -6,6 +6,7 @@ available either as a local directory or in the Hugging Face cache.
 """
 
 import gc
+import json
 import os
 from pathlib import Path
 
@@ -16,15 +17,16 @@ os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
 import torch
 
 from omnivoice import OmniVoice
-import json
 
 from omnivoice.utils.common import get_best_device
 from omnivoice.utils.lora import load_lora_adapter
 
+# BASE_MODEL = ""  # Empty means use base_model_name_or_path from adapter_config.json.
 BASE_MODEL = "k2-fsa/OmniVoice"
 TRAINED_ROOT = Path("trained")
 CHECKPOINT_NAME = ""  # Use "" to generate from every checkpoint-* folder.
 GENERATED_ROOT = Path("generated")
+CHECKPOINT_MODE = "lora"  # "full" or "lora"
 INSTRUCT = ""
 LANGUAGE = "Polish"
 LORA_ADAPTER = ""
@@ -52,6 +54,22 @@ def resolve_lora_adapter_path(path: str) -> Path:
             f"adapter_config.json and adapter_model.safetensors: {adapter_path}"
         )
     return adapter_path
+
+
+def resolve_lora_base_model(adapter_path: Path) -> str:
+    configured_base_model = BASE_MODEL.strip()
+    if configured_base_model:
+        return configured_base_model
+
+    adapter_config_path = adapter_path / "adapter_config.json"
+    adapter_config = json.loads(adapter_config_path.read_text(encoding="utf-8"))
+    base_model = adapter_config.get("base_model_name_or_path")
+    if not isinstance(base_model, str) or not base_model.strip():
+        raise ValueError(
+            "LoRA adapter config does not contain a usable "
+            f"base_model_name_or_path: {adapter_config_path}"
+        )
+    return base_model
 
 
 def resolve_case_insensitive_path(path: str | Path) -> Path:
@@ -120,9 +138,10 @@ def load_model_for_checkpoint(
 
     lora_adapter = LORA_ADAPTER.strip() or str(checkpoint_dir)
     lora_adapter_path = resolve_lora_adapter_path(lora_adapter)
-    print(f"Loading base model from {BASE_MODEL!r} on {device}...")
+    base_model = resolve_lora_base_model(lora_adapter_path)
+    print(f"Loading base model from {base_model!r} on {device}...")
     model = OmniVoice.from_pretrained(
-        BASE_MODEL,
+        base_model,
         device_map=device,
         dtype=dtype,
         audio_tokenizer_device=audio_tokenizer_device,
@@ -132,7 +151,6 @@ def load_model_for_checkpoint(
 
 
 def main() -> None:
-    CHECKPOINT_MODE = "full"  # "full" or "lora"
     if CHECKPOINT_MODE not in {"full", "lora"}:
         raise ValueError(f"CHECKPOINT_MODE must be 'full' or 'lora': {CHECKPOINT_MODE}")
 
@@ -155,27 +173,40 @@ def main() -> None:
 
     MODEL_FOLDER_NAME = "GeneralModelWithEveryone"  # Use "" to use each voice folder.
     fixed_model_folder_name = None
-    fixed_model_folder_name = MODEL_FOLDER_NAME.strip()
+    # fixed_model_folder_name = MODEL_FOLDER_NAME.strip()
 
     LINE_START = 0
     LINE_COUNT = 10
+    models_to_generate = ["Diego"]
     for model_name, lines in modelToLinesWithRefs.items():
+        if model_name not in models_to_generate:
+            continue
+
         # if "Ass_Elite_Insidious_Carlos" not in model_name:
         #    continue
         # if model_name in filtered_models:
         #    continue
         if len(lines) == 0:
             continue
-        if model_name in trained_directories:
-            continue
+        # if model_name in trained_directories:
+        #    continue
         model_folder_name = fixed_model_folder_name or model_name
+        model_folder_name = "Diego_remake"
         checkpoints_folder = trained_root / model_folder_name
         if not checkpoints_folder.is_dir():
             continue
 
         checkpoints = find_checkpoint_dirs(checkpoints_folder, CHECKPOINT_NAME.strip())
         for checkpoint_dir in checkpoints:
-            if not (checkpoint_dir / "model.safetensors").is_file():
+            if (
+                CHECKPOINT_MODE == "full"
+                and not (checkpoint_dir / "model.safetensors").is_file()
+            ):
+                continue
+            if CHECKPOINT_MODE == "lora" and not (
+                (checkpoint_dir / "adapter_config.json").is_file()
+                and (checkpoint_dir / "adapter_model.safetensors").is_file()
+            ):
                 continue
             pending_lines = []
             selected_lines = lines[LINE_START : LINE_START + LINE_COUNT]

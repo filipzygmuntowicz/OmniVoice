@@ -41,7 +41,12 @@ def discover_model_names(project_root: Path) -> list[str]:
 
 
 def main(
-    model_name: str, TRAINING_STEPS=900, SAVE_STEPS=300, EVAL_STEPS=25, USE_LORA=True
+    model_name: str,
+    TRAINING_STEPS=900,
+    SAVE_STEPS=300,
+    EVAL_STEPS=25,
+    USE_LORA=True,
+    USE_GENERAL_MODEL_WITH_EVERYONE_BASE=False,
 ) -> None:
 
     # -----------------------------------------------------------------------------
@@ -83,7 +88,10 @@ def main(
     # -----------------------------------------------------------------------------
     # Model/training settings
     # -----------------------------------------------------------------------------
-    BASE_MODEL = "k2-fsa/OmniVoice"
+    OFFICIAL_BASE_MODEL = "k2-fsa/OmniVoice"
+    GENERAL_MODEL_WITH_EVERYONE_OUTPUT_DIR = (
+        PROJECT_ROOT / "trained/GeneralModelWithEveryone"
+    )
     AUDIO_TOKENIZER = "eustlb/higgs-audio-v2-tokenizer"
 
     WORK_DIR = PROJECT_ROOT / f"data/{MODEL_NAME}"
@@ -133,13 +141,15 @@ def main(
             return f"{path.name} is not readable: {exc}"
         return None
 
-    def get_checkpoint_problem(checkpoint_dir: Path) -> str | None:
+    def get_checkpoint_problem(
+        checkpoint_dir: Path, expect_lora_files: bool = USE_LORA
+    ) -> str | None:
         required_files = [
             "model.safetensors",
             "optimizer.bin",
             "scheduler.bin",
         ]
-        if USE_LORA:
+        if expect_lora_files:
             required_files.extend(["adapter_config.json", "adapter_model.safetensors"])
 
         for filename in required_files:
@@ -160,7 +170,9 @@ def main(
         return None
 
     def find_latest_checkpoint(
-        output_dir: Path, max_step: int
+        output_dir: Path,
+        max_step: int | None = None,
+        expect_lora_files: bool = USE_LORA,
     ) -> tuple[Path, int] | None:
         if not output_dir.is_dir():
             return None
@@ -168,19 +180,44 @@ def main(
         checkpoints = []
         for checkpoint_dir in output_dir.iterdir():
             step = get_checkpoint_step(checkpoint_dir)
-            if step is not None and step <= max_step:
+            if step is not None and (max_step is None or step <= max_step):
                 checkpoints.append((step, checkpoint_dir))
 
         if not checkpoints:
             return None
 
         for step, checkpoint_dir in sorted(checkpoints, reverse=True):
-            problem = get_checkpoint_problem(checkpoint_dir)
+            problem = get_checkpoint_problem(
+                checkpoint_dir, expect_lora_files=expect_lora_files
+            )
             if problem is None:
                 return checkpoint_dir, step
             print(f"Skipping checkpoint {checkpoint_dir}: {problem}")
 
         return None
+
+    def resolve_base_model() -> str:
+        if not USE_GENERAL_MODEL_WITH_EVERYONE_BASE:
+            return OFFICIAL_BASE_MODEL
+
+        latest_base_checkpoint = find_latest_checkpoint(
+            GENERAL_MODEL_WITH_EVERYONE_OUTPUT_DIR,
+            expect_lora_files=False,
+        )
+        if latest_base_checkpoint is None:
+            raise FileNotFoundError(
+                "No usable GeneralModelWithEveryone checkpoint found under "
+                f"{GENERAL_MODEL_WITH_EVERYONE_OUTPUT_DIR}"
+            )
+
+        base_checkpoint, base_step = latest_base_checkpoint
+        print(
+            "Using GeneralModelWithEveryone checkpoint "
+            f"{base_checkpoint} at step {base_step} as the base model."
+        )
+        return str(base_checkpoint.resolve())
+
+    BASE_MODEL = resolve_base_model()
 
     def read_transcript(path: Path) -> str:
         text = path.read_text(encoding="utf-8").strip()
@@ -492,19 +529,19 @@ if __name__ == "__main__":
     with open("modelsEvalGeneralOrUnclear.json", "r", encoding="utf-8") as file:
         do_not_touch_models = json.load(file)
     for model_index, model_name in enumerate(model_names, start=1):
-        if model_name == "GeneralModelWithEveryone":
-            # continue
-            main(
-                model_name,
-                TRAINING_STEPS=45000,
-                SAVE_STEPS=1000,
-                EVAL_STEPS=500,
-                USE_LORA=False,
-            )
-            break
-        else:
-            continue
-        if model_name == "GeneralModel" or model_name in evaled_models:
+        # if model_name == "GeneralModelWithEveryone":
+        #    # continue
+        #    main(
+        #        model_name,
+        #        TRAINING_STEPS=45000,
+        #        SAVE_STEPS=1000,
+        #        EVAL_STEPS=500,
+        #        USE_LORA=False,
+        #    )
+        #    break
+        # else:
+        #    continue
+        if model_name == "GeneralModel" or model_name not in evaled_models:
             continue
         print(f"\n=== Training {model_name} ({model_index}/{len(model_names)}) ===")
         if model_name in evaled_models:
@@ -513,8 +550,17 @@ if __name__ == "__main__":
                 main(
                     model_name,
                     TRAINING_STEPS=steps,
-                    SAVE_STEPS=9999999999,
-                    EVAL_STEPS=9999999,
+                    SAVE_STEPS=200,
+                    EVAL_STEPS=25,
+                    USE_LORA=True,
+                    USE_GENERAL_MODEL_WITH_EVERYONE_BASE=False,
                 )
-        else:
-            main(model_name)
+        # else:
+        #    main(
+        #        model_name,
+        #        TRAINING_STEPS=1000,
+        #        SAVE_STEPS=200,
+        #        EVAL_STEPS=25,
+        #        USE_LORA=True,
+        #        USE_GENERAL_MODEL_WITH_EVERYONE_BASE=True,
+        #    )

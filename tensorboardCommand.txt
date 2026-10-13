@@ -1,0 +1,10 @@
+LOGDIR_SPEC=$(python - <<'PY'
+from pathlib import Path
+parts = []
+for log_dir in sorted(Path("trained").glob("*/tensorboard")):
+    if any(log_dir.glob("events.out.tfevents*")):
+        parts.append(f"{log_dir.parent.name}:{log_dir}")
+print(",".join(parts))
+PY
+)
+uv run tensorboard --logdir_spec "$LOGDIR_SPEC" --host 127.0.0.1 --port 6006

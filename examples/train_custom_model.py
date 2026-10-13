@@ -40,7 +40,9 @@ def discover_model_names(project_root: Path) -> list[str]:
     return model_names
 
 
-def main(model_name: str) -> None:
+def main(
+    model_name: str, TRAINING_STEPS=900, SAVE_STEPS=300, EVAL_STEPS=25, USE_LORA=True
+) -> None:
 
     # -----------------------------------------------------------------------------
     # Your training files
@@ -100,12 +102,9 @@ def main(model_name: str) -> None:
 
     # LoRA is the practical default for a custom voice or small dataset. Set
     # USE_LORA = False only if you really intend to full-fine-tune the model.
-    USE_LORA = True
-    TRAINING_STEPS = 700
-    SAVE_STEPS = 100
-    EVAL_STEPS = 50
-    BATCH_TOKENS = 4096
-    GRADIENT_ACCUMULATION_STEPS = 1
+
+    BATCH_TOKENS = 2048
+    GRADIENT_ACCUMULATION_STEPS = 2
     TRAIN_DATALOADER_WORKERS = 0
     MIXED_PRECISION = "bf16"
     ATTN_IMPLEMENTATION = "sdpa"
@@ -160,14 +159,16 @@ def main(model_name: str) -> None:
 
         return None
 
-    def find_latest_checkpoint(output_dir: Path) -> tuple[Path, int] | None:
+    def find_latest_checkpoint(
+        output_dir: Path, max_step: int
+    ) -> tuple[Path, int] | None:
         if not output_dir.is_dir():
             return None
 
         checkpoints = []
         for checkpoint_dir in output_dir.iterdir():
             step = get_checkpoint_step(checkpoint_dir)
-            if step is not None:
+            if step is not None and step <= max_step:
                 checkpoints.append((step, checkpoint_dir))
 
         if not checkpoints:
@@ -429,10 +430,10 @@ def main(model_name: str) -> None:
     train_jsonl = MANIFEST_DIR / "train.jsonl"
     dev_jsonl = MANIFEST_DIR / "dev.jsonl"
 
-    latest_checkpoint = find_latest_checkpoint(OUTPUT_DIR)
+    latest_checkpoint = find_latest_checkpoint(OUTPUT_DIR, TRAINING_STEPS)
     if latest_checkpoint is not None:
         resume_checkpoint, checkpoint_step = latest_checkpoint
-        if checkpoint_step >= TRAINING_STEPS:
+        if checkpoint_step == TRAINING_STEPS:
             print(
                 f"Skipping {MODEL_NAME}: latest checkpoint {resume_checkpoint} "
                 f"already reached {checkpoint_step}/{TRAINING_STEPS} steps."
@@ -486,8 +487,34 @@ if __name__ == "__main__":
     model_names = (
         MODEL_NAMES if MODEL_NAMES is not None else discover_model_names(project_root)
     )
+    with open("modelsEval.json", "r", encoding="utf-8") as file:
+        evaled_models = json.load(file)
+    with open("modelsEvalGeneralOrUnclear.json", "r", encoding="utf-8") as file:
+        do_not_touch_models = json.load(file)
     for model_index, model_name in enumerate(model_names, start=1):
-        if model_name == "GeneralModel":
+        if model_name == "GeneralModelWithEveryone":
+            # continue
+            main(
+                model_name,
+                TRAINING_STEPS=45000,
+                SAVE_STEPS=1000,
+                EVAL_STEPS=500,
+                USE_LORA=False,
+            )
+            break
+        else:
+            continue
+        if model_name == "GeneralModel" or model_name in evaled_models:
             continue
         print(f"\n=== Training {model_name} ({model_index}/{len(model_names)}) ===")
-        main(model_name)
+        if model_name in evaled_models:
+            desired_steps = sorted(evaled_models[model_name])
+            for steps in desired_steps:
+                main(
+                    model_name,
+                    TRAINING_STEPS=steps,
+                    SAVE_STEPS=9999999999,
+                    EVAL_STEPS=9999999,
+                )
+        else:
+            main(model_name)

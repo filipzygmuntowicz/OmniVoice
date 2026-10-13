@@ -5,7 +5,6 @@ This script assumes you already have OmniVoice installed and a checkpoint
 available either as a local directory or in the Hugging Face cache.
 """
 
-import argparse
 import gc
 import os
 from pathlib import Path
@@ -22,12 +21,16 @@ import json
 from omnivoice.utils.common import get_best_device
 from omnivoice.utils.lora import load_lora_adapter
 
-DEFAULT_TEXT = (
-    "W tej wiosce są sami słabi chłopi. Nie ma nikogo, kto potrafi porządnie walczyć."
-)
-DEFAULT_INSTRUCT = ""
-DEFAULT_LANGUAGE = "Polish"
-DEFAULT_LORA_ADAPTER = "trained/Ass_Fat_Bearish/checkpoint-5000/model.safetensors"
+BASE_MODEL = "k2-fsa/OmniVoice"
+TRAINED_ROOT = Path("trained")
+CHECKPOINT_NAME = ""  # Use "" to generate from every checkpoint-* folder.
+GENERATED_ROOT = Path("generated")
+INSTRUCT = ""
+LANGUAGE = "Polish"
+LORA_ADAPTER = ""
+DEVICE = None
+NUM_STEP = 32
+SPEED = 1.0
 
 
 def clear_device_cache(device: str) -> None:
@@ -75,147 +78,146 @@ def resolve_case_insensitive_path(path: str | Path) -> Path:
     raise FileNotFoundError(f"File does not exist: {file_path}")
 
 
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Generate one OmniVoice test dialogue WAV.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+def checkpoint_sort_key(path: Path) -> tuple[int, str]:
+    try:
+        return int(path.name.removeprefix("checkpoint-")), path.name
+    except ValueError:
+        return -1, path.name
+
+
+def find_checkpoint_dirs(checkpoints_folder: Path, checkpoint_name: str) -> list[Path]:
+    if checkpoint_name:
+        checkpoint_dir = checkpoints_folder / checkpoint_name
+        if not checkpoint_dir.is_dir():
+            raise FileNotFoundError(
+                f"Checkpoint directory does not exist: {checkpoint_dir}"
+            )
+        return [checkpoint_dir]
+
+    return sorted(
+        [
+            path
+            for path in checkpoints_folder.iterdir()
+            if path.is_dir() and path.name.startswith("checkpoint-")
+        ],
+        key=checkpoint_sort_key,
     )
-    parser.add_argument(
-        "--model",
-        default="k2-fsa/OmniVoice",
-        help="Local checkpoint directory or Hugging Face repo id.",
+
+
+def load_model_for_checkpoint(
+    checkpoint_dir: Path, device: str, dtype: torch.dtype, CHECKPOINT_MODE
+) -> OmniVoice:
+    audio_tokenizer_device = "cpu" if str(device).startswith("cuda") else device
+
+    if CHECKPOINT_MODE == "full":
+        print(f"Loading full checkpoint from {checkpoint_dir} on {device}...")
+        return OmniVoice.from_pretrained(
+            str(checkpoint_dir),
+            device_map=device,
+            dtype=dtype,
+            audio_tokenizer_device=audio_tokenizer_device,
+        )
+
+    lora_adapter = LORA_ADAPTER.strip() or str(checkpoint_dir)
+    lora_adapter_path = resolve_lora_adapter_path(lora_adapter)
+    print(f"Loading base model from {BASE_MODEL!r} on {device}...")
+    model = OmniVoice.from_pretrained(
+        BASE_MODEL,
+        device_map=device,
+        dtype=dtype,
+        audio_tokenizer_device=audio_tokenizer_device,
     )
-    parser.add_argument(
-        "--text",
-        default=DEFAULT_TEXT,
-        help="The single dialogue line to synthesize.",
-    )
-    parser.add_argument(
-        "--output",
-        default="test_dialogue.wav",
-        help="Output WAV path.",
-    )
-    parser.add_argument(
-        "--instruct",
-        default=DEFAULT_INSTRUCT,
-        help="Voice-design prompt. Use an empty string for auto voice.",
-    )
-    parser.add_argument(
-        "--language",
-        default=DEFAULT_LANGUAGE,
-        help="Language name or code. Use an empty string for auto-detection.",
-    )
-    parser.add_argument(
-        "--lora-adapter",
-        "--lora_adapter",
-        default=DEFAULT_LORA_ADAPTER,
-        help="LoRA checkpoint directory, or a file inside it. Use an empty string to disable LoRA.",
-    )
-    parser.add_argument(
-        "--device",
-        default=None,
-        help="Device to use, for example cuda, cuda:0, xpu, mps, or cpu.",
-    )
-    parser.add_argument(
-        "--num-step",
-        type=int,
-        default=32,
-        help="Diffusion steps. Lower values are faster but may reduce quality.",
-    )
-    parser.add_argument(
-        "--speed",
-        type=float,
-        default=1.0,
-        help="Speaking speed. Values above 1.0 are faster.",
-    )
-    return parser.parse_args()
+    print(f"Applying LoRA adapter from {lora_adapter_path}...")
+    return load_lora_adapter(model, str(lora_adapter_path))
 
 
 def main() -> None:
-    args = parse_args()
-    device = args.device or get_best_device()
-    dtype = torch.float32 if device == "cpu" else torch.float16
+    CHECKPOINT_MODE = "full"  # "full" or "lora"
+    if CHECKPOINT_MODE not in {"full", "lora"}:
+        raise ValueError(f"CHECKPOINT_MODE must be 'full' or 'lora': {CHECKPOINT_MODE}")
 
-    print(f"Loading OmniVoice model from {args.model!r} on {device}...")
+    device = DEVICE or get_best_device()
+    dtype = torch.float32 if device == "cpu" else torch.float16
 
     with open("modelToLinesWithRefs.json", "r", encoding="utf-8") as file:
         modelToLinesWithRefs = json.load(file)
-    trained_directories = [d for d in os.listdir(f"{os.getcwd()}/trained")]
+    trained_root = Path(TRAINED_ROOT)
+    if not trained_root.is_dir():
+        raise FileNotFoundError(
+            f"Trained root directory does not exist: {trained_root}"
+        )
+    trained_directories = {
+        path.name for path in trained_root.iterdir() if path.is_dir()
+    }
     with open("modelsEval.json", "r", encoding="utf-8") as file:
         jsonObject = json.load(file)
-        filtered_models = [
-            model for model, value in jsonObject.items() if (value == "Finetune_150")
-        ]
-    for i in range(0, 5):
-        lora_type = "general"
-        if i >= 1:
-            lora_type = "finetune"
-        for model_name, lines in modelToLinesWithRefs.items():
-            # if "Ass_Elite_Insidious_Carlos" not in model_name:
-            #    continue
-            # if model_name not in filtered_models:
-            #    continue
-            if len(lines) == 0:
-                continue
-            if model_name not in trained_directories:
-                continue
-            steps = 45000
-            lora_adapter = f"trained/GeneralModel/checkpoint-{steps}/model.safetensors"
-            if lora_type == "finetune":
-                steps = min(i * 100, 5000)
-                lora_adapter = (
-                    f"trained/{model_name}/checkpoint-{steps}/model.safetensors"
-                )
-            if not Path(lora_adapter).exists():
-                continue
-            lora_adapter_path = resolve_lora_adapter_path(lora_adapter)
+        filtered_models = [model for model, value in jsonObject.items()]
 
+    MODEL_FOLDER_NAME = "GeneralModelWithEveryone"  # Use "" to use each voice folder.
+    fixed_model_folder_name = None
+    fixed_model_folder_name = MODEL_FOLDER_NAME.strip()
+
+    LINE_START = 0
+    LINE_COUNT = 10
+    for model_name, lines in modelToLinesWithRefs.items():
+        # if "Ass_Elite_Insidious_Carlos" not in model_name:
+        #    continue
+        # if model_name in filtered_models:
+        #    continue
+        if len(lines) == 0:
+            continue
+        if model_name in trained_directories:
+            continue
+        model_folder_name = fixed_model_folder_name or model_name
+        checkpoints_folder = trained_root / model_folder_name
+        if not checkpoints_folder.is_dir():
+            continue
+
+        checkpoints = find_checkpoint_dirs(checkpoints_folder, CHECKPOINT_NAME.strip())
+        for checkpoint_dir in checkpoints:
+            if not (checkpoint_dir / "model.safetensors").is_file():
+                continue
             pending_lines = []
-            for index, line in enumerate(lines[4:7], start=4):
-                line["filename"] = f"{model_name}_{index + 1}_{lora_type}_{steps}.wav"
-                output_path = Path(f"generated/{line["filename"]}")
+            selected_lines = lines[LINE_START : LINE_START + LINE_COUNT]
+            for index, line in enumerate(selected_lines, start=LINE_START):
+                line["filename"] = (
+                    f"{model_name}_{index + 1}_{checkpoint_dir.name.removeprefix('checkpoint-')}.wav"
+                )
+                output_path = GENERATED_ROOT / line["filename"]
                 if output_path.exists():
                     continue
                 pending_lines.append((line, output_path))
-
             if not pending_lines:
                 continue
-
             model = None
             try:
                 clear_device_cache(device)
-                model = OmniVoice.from_pretrained(
-                    args.model,
-                    device_map=device,
+                model = load_model_for_checkpoint(
+                    checkpoint_dir,
+                    device=device,
                     dtype=dtype,
-                    audio_tokenizer_device=(
-                        "cpu" if str(device).startswith("cuda") else device
-                    ),
+                    CHECKPOINT_MODE=CHECKPOINT_MODE,
                 )
-                print(f"Applying LoRA adapter from {lora_adapter_path}...")
-                model = load_lora_adapter(model, str(lora_adapter_path))
                 clear_device_cache(device)
-
-                instruct = args.instruct.strip() or None
-                language = args.language.strip() or None
+                instruct = INSTRUCT.strip() or None
+                language = LANGUAGE.strip() or None
                 for line, output_path in pending_lines:
                     clear_device_cache(device)
                     text = line["line"]
                     refLine = line["simillar"]
                     ref_audio_path = resolve_case_insensitive_path(
-                        f"SPEECH_MERGED/{refLine["filename"]}"
+                        f"SPEECH_MERGED/{refLine['filename']}"
                     )
                     print(f"Generating: {line!r}")
                     audio = model.generate(
                         text=text,
                         language=language,
                         instruct=instruct,
-                        num_step=args.num_step,
-                        speed=args.speed,
+                        num_step=NUM_STEP,
+                        speed=SPEED,
                         ref_audio=str(ref_audio_path),
                         ref_text=refLine["line"],
                     )
-
                     output_path.parent.mkdir(parents=True, exist_ok=True)
                     sf.write(output_path, audio[0], model.sampling_rate)
                     print(f"Saved {output_path} at {model.sampling_rate} Hz")

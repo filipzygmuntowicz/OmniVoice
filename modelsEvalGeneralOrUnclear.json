@@ -1,0 +1,25 @@
+{
+    "Ass_Elite_Hard": "General",
+    "Ass_Elite_Proud_Emet": "General",
+    "Ass_Warrior_Clear": "General",
+    "Ass_Warrior_Hard": "General",
+    "Hum_Elite_Hard": "I think it needs more training",
+    "Hum_Slave_Clever": "900 maybe train more",
+    "Hum_Warrior_Calm_Arakos_": "Finetune_600",
+    "Hum_Warrior_Hard": "General",
+    "Marvin": "chujnia",
+    "Riordian": [
+        600,
+        750,
+        900,
+        "more?"
+    ],
+    "Orc_Boss_Clear": "General",
+    "Orc_Boss_Hard": "General",
+    "Orc_Old_Calm": "General",
+    "Orc_Warrior_Dumb": "General",
+    "Orc_Warrior_Hard": "General",
+    "Orc_Warrior_Proud": "General",
+    "Player_PC_Hero": "Finetune_600",
+    "Diego": "train more"
+}

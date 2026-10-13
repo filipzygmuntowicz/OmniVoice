@@ -1,34 +1,107 @@
 {
-    "Ass_Elite_Hard": "General",
-    "Ass_Elite_Insidious_Carlos": "Finetune_600",
-    "Ass_Elite_Proud_Emet": "General",
-    "Ass_Fat_Bearish": "Finetune_150",
-    "Ass_Fat_Hectic": "Finetune_150",
-    "Ass_Fat_Insidious": "Finetune_150",
-    "Ass_Warrior_Clear": "General",
-    "Ass_Warrior_Dumb": "Finetune_150",
-    "Ass_Warrior_Hard": "General",
-    "Hum_Elite_Hard": "I think it needs more training",
-    "Hum_Elite_Proud_Anog": "Finetune_600",
-    "Hum_Fat_Weak": "Finetune_150",
-    "Hum_Old_Calm": "Finetune_150",
-    "Hum_Old_Weird": "Finetune_600",
-    "Hum_Old_Wise_Altus": "Finetune_600",
-    "Hum_Slave_Clever": "Finetune_600",
-    "Hum_Warrior_Bearish_Ashton": "Finetune_150",
-    "Hum_Warrior_Calm_Arakos_": "Finetune_600",
-    "Hum_Warrior_Clear": "Bad Training Data",
-    "Hum_Warrior_Dumb": "Coś kurwa za szybki",
-    "Hum_Warrior_Friendly": "Finetune_600",
-    "Hum_Warrior_Hard": "General",
-    "Hum_Young_Clever": "Finetune_600",
-    "Hum_Young_Naive": "Finetune_600",
-    "Orc_Boss_Clear": "General",
-    "Orc_Boss_Hard": "General",
-    "Orc_Old_Calm": "General",
-    "Orc_Warrior_Dumb": "General",
-    "Orc_Warrior_Hard": "General",
-    "Orc_Warrior_Proud": "General",
-    "Player_PC_Hero": "Finetune_600",
-    "Xardas_Xardas": "Finetune_600"
+    "Angar": [
+        800
+    ],
+    "Arwid": [
+        300
+    ],
+    "Ass_Elite_Insidious_Carlos": [
+        600
+    ],
+    "Ass_Fat_Bearish": [
+        775
+    ],
+    "Ass_Fat_Hectic": [
+        400
+    ],
+    "Ass_Fat_Insidious": [
+        400
+    ],
+    "Ass_Warrior_Dumb": [
+        150
+    ],
+    "Cortez": [
+        500
+    ],
+    "Cronos": [
+        400
+    ],
+    "Greg": [
+        800
+    ],
+    "Hum_Elite_Proud_Anog": [
+        900
+    ],
+    "Hum_Fat_Weak": [
+        900
+    ],
+    "Hum_Old_Calm": [
+        725
+    ],
+    "Hum_Old_Weird_Renwik": [
+        700
+    ],
+    "Hum_Old_Wise_Altus": [
+        600
+    ],
+    "Hum_Warrior_Bearish_Ashton": [
+        150
+    ],
+    "Hum_Warrior_Clear": [
+        900
+    ],
+    "Hum_Warrior_Dumb": [
+        250
+    ],
+    "Hum_Warrior_Friendly": [
+        600
+    ],
+    "Hum_Young_Clever": [
+        900
+    ],
+    "Hum_Young_Naive": [
+        600
+    ],
+    "Ivy": [
+        600
+    ],
+    "Kurt": [
+        600
+    ],
+    "Lares": [
+        600
+    ],
+    "Lorenzo": [
+        900
+    ],
+    "Myxir": [
+        50
+    ],
+    "Nefarius": [
+        500
+    ],
+    "Rhobar": [
+        150
+    ],
+    "Riordian": [
+        900
+    ],
+    "Saturas": [
+        900
+    ],
+    "Roderich": [
+        775
+    ],
+    "Tengral": [
+        850
+    ],
+    "Vatras": [
+        900
+    ],
+    "Viktor": [
+        500
+    ],
+    "Zuben": [
+        600
+    ]
 }

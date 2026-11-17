@@ -104,17 +104,8 @@
     "Zuben": [
         600
     ],
-    "Diego": [
-        600
-    ],
-    "Lester_g1": [
-        300
-    ],
     "Milten_remake": [
-        300
-    ],
-    "Lee": [
-        775
+        800
     ],
     "Gorn_remake": [
         375
@@ -123,15 +114,24 @@
         500
     ],
     "Lee_remake": [
-        600
+        475
     ],
     "Lester_remake": [
-        600
-    ],
-    "Xardas_g3": [
-        600
+        475
     ],
     "Bezi_g3": [
-        1000
+        850
+    ],
+    "Xardas": [
+        900
+    ],
+    "Xardas_g1g2g3": [
+        800
+    ],
+    "Markus": [
+        800
+    ],
+    "Player_pc_hero": [
+        9500
     ]
 }

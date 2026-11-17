@@ -47,6 +47,8 @@ def main(
     EVAL_STEPS=25,
     USE_LORA=True,
     USE_GENERAL_MODEL_WITH_EVERYONE_BASE=False,
+    BATCH_TOKENS=4096,
+    GRADIENT_ACCUMULATION_STEPS=1,
 ) -> None:
 
     # -----------------------------------------------------------------------------
@@ -111,8 +113,6 @@ def main(
     # LoRA is the practical default for a custom voice or small dataset. Set
     # USE_LORA = False only if you really intend to full-fine-tune the model.
 
-    BATCH_TOKENS = 2048
-    GRADIENT_ACCUMULATION_STEPS = 2
     TRAIN_DATALOADER_WORKERS = 0
     MIXED_PRECISION = "bf16"
     ATTN_IMPLEMENTATION = "sdpa"
@@ -529,18 +529,21 @@ if __name__ == "__main__":
     with open("modelsEvalGeneralOrUnclear.json", "r", encoding="utf-8") as file:
         do_not_touch_models = json.load(file)
     for model_index, model_name in enumerate(model_names, start=1):
-        # if model_name == "GeneralModelWithEveryone":
-        #    # continue
-        #    main(
-        #        model_name,
-        #        TRAINING_STEPS=45000,
-        #        SAVE_STEPS=1000,
-        #        EVAL_STEPS=500,
-        #        USE_LORA=False,
-        #    )
-        #    break
-        # else:
-        #    continue
+        if model_name != "Player_pc_hero":
+            continue
+        if model_name == "Player_pc_hero":
+            # continue
+            main(
+                model_name,
+                TRAINING_STEPS=9500,
+                SAVE_STEPS=500,
+                EVAL_STEPS=100,
+                USE_LORA=False,
+                USE_GENERAL_MODEL_WITH_EVERYONE_BASE=False,
+                BATCH_TOKENS=1024,
+                GRADIENT_ACCUMULATION_STEPS=4,
+            )
+            break
         if model_name == "GeneralModel" or model_name not in evaled_models:
             continue
         print(f"\n=== Training {model_name} ({model_index}/{len(model_names)}) ===")
@@ -550,17 +553,20 @@ if __name__ == "__main__":
                 main(
                     model_name,
                     TRAINING_STEPS=steps,
-                    SAVE_STEPS=200,
+                    SAVE_STEPS=300,
                     EVAL_STEPS=25,
                     USE_LORA=True,
                     USE_GENERAL_MODEL_WITH_EVERYONE_BASE=False,
+                    BATCH_TOKENS=2048,
+                    GRADIENT_ACCUMULATION_STEPS=2,
                 )
-        # else:
-        #    main(
-        #        model_name,
-        #        TRAINING_STEPS=1000,
-        #        SAVE_STEPS=200,
-        #        EVAL_STEPS=25,
-        #        USE_LORA=True,
-        #        USE_GENERAL_MODEL_WITH_EVERYONE_BASE=True,
-        #    )
+    # main(
+    #    "Marvin",
+    #    TRAINING_STEPS=15000,
+    #    SAVE_STEPS=3000,
+    #    EVAL_STEPS=1000,
+    #    USE_LORA=False,
+    #    USE_GENERAL_MODEL_WITH_EVERYONE_BASE=False,
+    #    BATCH_TOKENS=1024,
+    #    GRADIENT_ACCUMULATION_STEPS=4,
+    # )

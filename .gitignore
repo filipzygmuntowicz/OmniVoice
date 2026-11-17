@@ -32,3 +32,4 @@ examples/exp*
 /old_models_and_gens_storage
 /generated
 /clean_wav
+*.WAV

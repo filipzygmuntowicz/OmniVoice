@@ -26,13 +26,13 @@ BASE_MODEL = "k2-fsa/OmniVoice"
 TRAINED_ROOT = Path("trained")
 CHECKPOINT_NAME = ""  # Use "" to generate from every checkpoint-* folder.
 GENERATED_ROOT = Path("generated")
-CHECKPOINT_MODE = "lora"  # "full" or "lora"
 INSTRUCT = ""
 LANGUAGE = "Polish"
 LORA_ADAPTER = ""
 DEVICE = None
 NUM_STEP = 32
 SPEED = 1.0
+GENERAL_MODEL_NAME = "GeneralModelWithEveryone"
 
 
 def clear_device_cache(device: str) -> None:
@@ -126,7 +126,7 @@ def load_model_for_checkpoint(
     checkpoint_dir: Path, device: str, dtype: torch.dtype, CHECKPOINT_MODE
 ) -> OmniVoice:
     audio_tokenizer_device = "cpu" if str(device).startswith("cuda") else device
-
+    print(checkpoint_dir)
     if CHECKPOINT_MODE == "full":
         print(f"Loading full checkpoint from {checkpoint_dir} on {device}...")
         return OmniVoice.from_pretrained(
@@ -150,10 +150,124 @@ def load_model_for_checkpoint(
     return load_lora_adapter(model, str(lora_adapter_path))
 
 
-def main() -> None:
-    if CHECKPOINT_MODE not in {"full", "lora"}:
-        raise ValueError(f"CHECKPOINT_MODE must be 'full' or 'lora': {CHECKPOINT_MODE}")
+def clean_line(line):
+    line = (
+        line.replace("\n", ". ")
+        .replace("Bayazid", "Bajazid")
+        .replace("Skipper", "Skiper")
+        .replace("Gunock", "Ganok")
+        .replace("Creighton", "Krejton")
+        .replace("Sibur", "Syibur")
+        .replace("Bones", "Bołns")
+        .replace("Shawn", "Szołn")
+        .replace("Betsi", "Betsyi")
+        .replace("Craig", "Krejg")
+        .replace("Agtalook", "Agtaluk")
+        .replace("Kayor", "Kajor")
+        .replace("Cody", "Kodi")
+        .replace("Shakib", "Szakib")
+        .replace("Sanuyem", "Sanujem")
+        .replace("Bauth", "Buf")
+        .replace("Booth", "Buf")
+        .replace("Willi", "Łili")
+        .replace("Hector", "Hektor")
+        .replace("Gias", "Gijas")
+        .replace("Ingvar", "Ingwar")
+        .replace("Yasmin", "Jasmin")
+        .replace("Adney", "Adnyi")
+        .replace("Coylek", "Kojlek")
+        .replace("Jasir", "Jasyir")
+        .replace("Bufford", "Buford")
+        .replace("Kasim", "Kasyim")
+        .replace("Mazin", "Mazyin")
+        .replace("Yepas", "Jepas")
+        .replace("Yespas", "Jespas")
+        .replace("Navaras", "Nawaras")
+        .replace("Luca", "Luka")
+        .replace("Giacomo", "Gjakomo")
+        .replace("Jose", "Hoze")
+        .replace("Eusebio", "Ełzebjo")
+        .replace("Jaffar", "Dżafar")
+        .replace("Carlos", "Karlos")
+        .replace("Ali", "Alli")
+        .replace("Sancho", "Sanczo")
+        .replace("Khabir", "Kabir")
+        .replace("Saddam", "Sadam")
+        .replace("Silvio", "Sylwjo")
+        .replace("Quadir", "Kładir")
+        .replace("Fabio", "Fabjo")
+        .replace("Jack", "Dżek")
+        .replace("Kole", "Kol")
+        .replace("Vak", "Wak")
+        .replace("Bill", "Bil")
+        .replace("Butt", "Bat")
+        .replace("Irdorath", "Irdorat")
+        .replace("Vatras", "Watras")
+        .replace("Constantin", "Konstantin")
+        .replace("Grobock", "Grobok")
+        .replace("Pranck", "Prank")
+        .replace("arash", "arasz")
+        .replace("Arash", "Arasz")
+        .replace("Joey", "Dżoł")
+        .replace("Galadasch", "Galadasz")
+        .replace("Jarrod", "Dżarod")
+        .replace("Oliver", "Oliwier")
+        .replace("George", "Dżordż")
+        .replace("Wow", "Łał")
+        .replace("Suvras", "Suwras")
+        .replace("Aschnu", "Asznu")
+        .replace("Reddock", "Redok")
+        .replace("Dennis", "Denis")
+        .replace("Lee", "Li")
+        .replace("Silden", "Sylden")
+        .replace("Spike", "Spajk")
+        .replace("Basir", "Bazir")
+        .replace("Peer", "Pir")
+        .replace("Mason", "Mason")
+        .replace("Rocko", "Roko")
+        .replace("Javier", "Dżejwier")
+        .replace("Cape Dun", "Kejp Dan")
+        .replace("Cape", "Kejp")
+        .replace("Julio", "Huljo")
+        .replace(")... ", ")")
+        .replace("Chris", "Kris")
+        .replace("rhobar", "robar")
+        .replace("Rhobar", "Robar")
+        .replace("Xardas", "Ksardas")
+        .replace("Vengard", "Wengard")
+        .replace("Givess", "Giwess")
+        .replace("Varan", "Waran")
+        .replace("Beliar", "Beljar")
+        .replace("-", ",")
+        .replace("  ", " ")
+        .replace("   ", "")
+        .replace(" ,", ",")
+        .replace("No cóż", "Noo cóż")
+        .replace(", cóż", " cóż")
+        .replace("Hej ", "Hejj ")
+        .replace("Ej ", "Ejj ")
+        .replace("...", ".")
+        .replace(" wilka", " willka")
+        .replace("x", "ks")
+        .replace("X", "Ks")
+        .replace("Akascha", "Akasza")
+        .replace("sch", "sz")
+        .replace("sh", "sz")
+        .replace("Khorinis", "Korinis")
+    )
+    while "(" in line and ")" in line:
+        line = line.replace(line[line.find("(") : line.find(")") + 1], "")
+    line = line.replace("(", "").replace(")", "")
+    while "[" in line and "]" in line:
+        line = line.replace(line[line.find("[") : line.find("]") + 1], "")
+    line = line.replace("[", "").replace("]", "").replace('"', "")
+    return line
 
+
+models_that_are_base_models = ["Player_pc_hero", "Marvin"]
+
+
+def main() -> None:
     device = DEVICE or get_best_device()
     dtype = torch.float32 if device == "cpu" else torch.float16
 
@@ -171,32 +285,42 @@ def main() -> None:
         jsonObject = json.load(file)
         filtered_models = [model for model, value in jsonObject.items()]
 
-    MODEL_FOLDER_NAME = "GeneralModelWithEveryone"  # Use "" to use each voice folder.
     fixed_model_folder_name = None
-    # fixed_model_folder_name = MODEL_FOLDER_NAME.strip()
 
     LINE_START = 0
-    LINE_COUNT = 10
-    models_to_generate = ["Diego"]
+    LINE_COUNT = 30
+    models_to_generate = ["Milten_remake"]
     for model_name, lines in modelToLinesWithRefs.items():
-        if model_name not in models_to_generate:
+        # if model_name not in models_to_generate:
+        #    continue
+        if model_name != "Player_pc_hero":
             continue
-
+        if model_name == "Xardas":
+            raise Exception(
+                "You have fucked up he shouldn't be here, he should be named Xardas_g1g2g3 in refs json."
+            )
         # if "Ass_Elite_Insidious_Carlos" not in model_name:
         #    continue
         # if model_name in filtered_models:
         #    continue
-        if len(lines) == 0:
-            continue
         # if model_name in trained_directories:
         #    continue
         model_folder_name = fixed_model_folder_name or model_name
-        model_folder_name = "Diego_remake"
-        checkpoints_folder = trained_root / model_folder_name
-        if not checkpoints_folder.is_dir():
-            continue
 
+        checkpoints_folder = trained_root / model_folder_name
+        CHECKPOINT_MODE = (
+            "full" if model_name in models_that_are_base_models else "lora"
+        )
+        if not checkpoints_folder.is_dir():
+            print(
+                f"No checkpoint folder found for {model_folder_name}, defaulting to General"
+            )
+            checkpoints_folder = trained_root / GENERAL_MODEL_NAME
+            CHECKPOINT_MODE = "full"
         checkpoints = find_checkpoint_dirs(checkpoints_folder, CHECKPOINT_NAME.strip())
+        # if len(checkpoints) != 1:
+        #   raise Exception(checkpoints)
+        # continue
         for checkpoint_dir in checkpoints:
             if (
                 CHECKPOINT_MODE == "full"
@@ -209,11 +333,17 @@ def main() -> None:
             ):
                 continue
             pending_lines = []
-            selected_lines = lines[LINE_START : LINE_START + LINE_COUNT]
+            if LINE_COUNT is None:
+                selected_lines = lines
+            else:
+                selected_lines = lines[LINE_START : LINE_START + LINE_COUNT]
             for index, line in enumerate(selected_lines, start=LINE_START):
                 line["filename"] = (
                     f"{model_name}_{index + 1}_{checkpoint_dir.name.removeprefix('checkpoint-')}.wav"
                 )
+                # line["filename"] = (
+                #    f"{index + 1}_{checkpoint_dir.name.removeprefix('checkpoint-')}_{"Xardas_g3"}.wav"
+                # )
                 output_path = GENERATED_ROOT / line["filename"]
                 if output_path.exists():
                     continue
@@ -241,13 +371,13 @@ def main() -> None:
                     )
                     print(f"Generating: {line!r}")
                     audio = model.generate(
-                        text=text,
+                        text=clean_line(text),
                         language=language,
                         instruct=instruct,
                         num_step=NUM_STEP,
                         speed=SPEED,
                         ref_audio=str(ref_audio_path),
-                        ref_text=refLine["line"],
+                        ref_text=clean_line(refLine["line"]),
                     )
                     output_path.parent.mkdir(parents=True, exist_ok=True)
                     sf.write(output_path, audio[0], model.sampling_rate)

@@ -157,102 +157,45 @@ def clean_line(line):
         .replace("Skipper", "Skiper")
         .replace("Gunock", "Ganok")
         .replace("Creighton", "Krejton")
-        .replace("Sibur", "Syibur")
-        .replace("Bones", "Bołns")
-        .replace("Shawn", "Szołn")
-        .replace("Betsi", "Betsyi")
-        .replace("Craig", "Krejg")
         .replace("Agtalook", "Agtaluk")
         .replace("Kayor", "Kajor")
-        .replace("Cody", "Kodi")
-        .replace("Shakib", "Szakib")
         .replace("Sanuyem", "Sanujem")
-        .replace("Bauth", "Buf")
-        .replace("Booth", "Buf")
         .replace("Willi", "Łili")
-        .replace("Hector", "Hektor")
-        .replace("Gias", "Gijas")
-        .replace("Ingvar", "Ingwar")
-        .replace("Yasmin", "Jasmin")
-        .replace("Adney", "Adnyi")
         .replace("Coylek", "Kojlek")
-        .replace("Jasir", "Jasyir")
         .replace("Bufford", "Buford")
-        .replace("Kasim", "Kasyim")
-        .replace("Mazin", "Mazyin")
-        .replace("Yepas", "Jepas")
-        .replace("Yespas", "Jespas")
-        .replace("Navaras", "Nawaras")
         .replace("Luca", "Luka")
-        .replace("Giacomo", "Gjakomo")
         .replace("Jose", "Hoze")
-        .replace("Eusebio", "Ełzebjo")
-        .replace("Jaffar", "Dżafar")
         .replace("Carlos", "Karlos")
-        .replace("Ali", "Alli")
-        .replace("Sancho", "Sanczo")
         .replace("Khabir", "Kabir")
         .replace("Saddam", "Sadam")
         .replace("Silvio", "Sylwjo")
-        .replace("Quadir", "Kładir")
-        .replace("Fabio", "Fabjo")
-        .replace("Jack", "Dżek")
-        .replace("Kole", "Kol")
         .replace("Vak", "Wak")
-        .replace("Bill", "Bil")
-        .replace("Butt", "Bat")
         .replace("Irdorath", "Irdorat")
         .replace("Vatras", "Watras")
-        .replace("Constantin", "Konstantin")
         .replace("Grobock", "Grobok")
         .replace("Pranck", "Prank")
-        .replace("arash", "arasz")
-        .replace("Arash", "Arasz")
         .replace("Joey", "Dżoł")
         .replace("Galadasch", "Galadasz")
         .replace("Jarrod", "Dżarod")
-        .replace("Oliver", "Oliwier")
-        .replace("George", "Dżordż")
-        .replace("Wow", "Łał")
         .replace("Suvras", "Suwras")
         .replace("Aschnu", "Asznu")
         .replace("Reddock", "Redok")
-        .replace("Dennis", "Denis")
-        .replace("Lee", "Li")
-        .replace("Silden", "Sylden")
-        .replace("Spike", "Spajk")
         .replace("Basir", "Bazir")
         .replace("Peer", "Pir")
-        .replace("Mason", "Mason")
-        .replace("Rocko", "Roko")
         .replace("Javier", "Dżejwier")
         .replace("Cape Dun", "Kejp Dan")
         .replace("Cape", "Kejp")
         .replace("Julio", "Huljo")
         .replace(")... ", ")")
-        .replace("Chris", "Kris")
         .replace("rhobar", "robar")
         .replace("Rhobar", "Robar")
         .replace("Xardas", "Ksardas")
         .replace("Vengard", "Wengard")
         .replace("Givess", "Giwess")
         .replace("Varan", "Waran")
-        .replace("Beliar", "Beljar")
-        .replace("-", ",")
         .replace("  ", " ")
         .replace("   ", "")
-        .replace(" ,", ",")
-        .replace("No cóż", "Noo cóż")
-        .replace(", cóż", " cóż")
-        .replace("Hej ", "Hejj ")
-        .replace("Ej ", "Ejj ")
-        .replace("...", ".")
-        .replace(" wilka", " willka")
-        .replace("x", "ks")
-        .replace("X", "Ks")
         .replace("Akascha", "Akasza")
-        .replace("sch", "sz")
-        .replace("sh", "sz")
         .replace("Khorinis", "Korinis")
     )
     while "(" in line and ")" in line:
@@ -288,13 +231,11 @@ def main() -> None:
     fixed_model_folder_name = None
 
     LINE_START = 0
-    LINE_COUNT = 30
+    LINE_COUNT = None
     models_to_generate = ["Milten_remake"]
     for model_name, lines in modelToLinesWithRefs.items():
         # if model_name not in models_to_generate:
         #    continue
-        if model_name != "Player_pc_hero":
-            continue
         if model_name == "Xardas":
             raise Exception(
                 "You have fucked up he shouldn't be here, he should be named Xardas_g1g2g3 in refs json."
@@ -338,9 +279,9 @@ def main() -> None:
             else:
                 selected_lines = lines[LINE_START : LINE_START + LINE_COUNT]
             for index, line in enumerate(selected_lines, start=LINE_START):
-                line["filename"] = (
-                    f"{model_name}_{index + 1}_{checkpoint_dir.name.removeprefix('checkpoint-')}.wav"
-                )
+                # line["filename"] = (
+                #    f"{model_name}_{index + 1}_{checkpoint_dir.name.removeprefix('checkpoint-')}.wav"
+                # )
                 # line["filename"] = (
                 #    f"{index + 1}_{checkpoint_dir.name.removeprefix('checkpoint-')}_{"Xardas_g3"}.wav"
                 # )

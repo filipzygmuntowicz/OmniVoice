@@ -232,10 +232,38 @@ def main() -> None:
 
     LINE_START = 0
     LINE_COUNT = None
-    models_to_generate = ["Milten_remake"]
+    models_to_generate = [
+        # "Arwid",
+        # "Ass_Elite_Insidious_Carlos",
+        # "Ass_Fat_Bearish",
+        # "Ass_Fat_Hectic",
+        # "Ass_Fat_Insidious",
+        # "Cortez",
+        # "Hum_Elite_Proud_Anog",
+        # "Hum_Fat_Weak",
+        # "Hum_Old_Calm",
+        # "Hum_Slave_Clever",
+        # "Hum_Warrior_Clear",
+        # "Hum_Warrior_Dumb",
+        # "Hum_Warrior_Friendly",
+        # "Lares",
+        # "Lester_remake",
+        # "Rhobar",
+        # "Roderich",
+        # "Saturas",
+        # "Viktor",
+        # "Xardas_g1g2g3",
+        # "Zuben",
+        # "Riordian",
+        # "Cronos",
+        # "Vatras",
+        # "Poszukiwacz",
+        "Player_pc_hero",
+    ]
     for model_name, lines in modelToLinesWithRefs.items():
-        # if model_name not in models_to_generate:
-        #    continue
+        # SPRAWDZ CZY FOBART_OPETANY JEST W PLIKACH
+        if model_name not in models_to_generate:
+            continue
         if model_name == "Xardas":
             raise Exception(
                 "You have fucked up he shouldn't be here, he should be named Xardas_g1g2g3 in refs json."
@@ -312,6 +340,7 @@ def main() -> None:
                     )
                     print(f"Generating: {line!r}")
                     audio = model.generate(
+                        # text="Li, Laresie, Angarze! Co wy tutaj robicie?",
                         text=clean_line(text),
                         language=language,
                         instruct=instruct,
